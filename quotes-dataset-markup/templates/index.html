@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:site_name" content="Quotes Dataset Markup">
+    <meta property="og:title" content="QDM | Разметка цитат преподавателей"/>
+    <meta property="og:description"
+          content="Привет. Мы работаем над проектом, для которого нужно разметить рекордно большое количество цитат. Будем признательны за помощь!">
+    <meta property="og:image" content="{{ url_for('static', filename='preview.png') }}"/>
+    <meta property="twitter:image" content="{{ url_for('static', filename='preview.png') }}"/>
+
+    <title>Quotes Dataset Markup</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        ::-moz-selection {
+            color: white;
+            background: #6d8af3;
+        }
+
+        ::selection {
+            color: white;
+            background: #6d8af3;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            transition: background-color 0.5s, color 0.5s;
+            position: relative;
+        }
+
+        #quote-container {
+            user-select: none;
+            position: absolute;
+            top: 130px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            transition: background-color 0.5s;
+        }
+
+        #quote-container::after {
+          content: "";
+          position: absolute;
+          bottom: -80px;
+          height: 1px;
+          width: 1px;
+        }
+
+        #quote-text {
+            user-select: text;
+            font-size: 30px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            margin: 10px;
+            padding: 12px 30px;
+            font-size: 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            color: white;
+            user-select: none;
+        }
+
+        .btn-positive {
+            background-color: #34d058;
+        }
+
+        .btn-positive:hover {
+            background-color: #28a745;
+            transform: translateY(-2px);
+        }
+
+        .btn-negative {
+            background-color: #f66a6a;
+        }
+
+        .btn-negative:hover {
+            background-color: #dc3545;
+            transform: translateY(-2px);
+        }
+
+        .btn-report {
+            background-color: #8c8c8c;
+        }
+
+        .btn-report:hover {
+            background-color: #6c757d;
+            transform: translateY(-2px);
+        }
+
+        .btn-skip {
+            background-color: #ffdf7e;
+            color: black;
+        }
+
+        .btn-skip:hover {
+            background-color: #ffc107;
+            transform: translateY(-2px);
+        }
+
+        .btn-nsfw {
+            background-color: #6d8af3;
+            color: white;
+        }
+
+        .btn-nsfw:hover {
+            background-color: #4a6ef0;
+            transform: translateY(-2px);
+        }
+
+        .theme-switch {
+            position: absolute;
+            top: 70px;
+            user-select: none;
+            right: 15px;
+            padding: 10px 17px;
+            font-size: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #008cba;
+            color: white;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .theme-switch:hover {
+            background-color: #007bb5;
+            transform: translateY(-2px);
+        }
+
+        .show-info-btn {
+            position: absolute;
+            top: 20px;
+            right: 15px;
+            padding: 10px 17px;
+            font-size: 15px;
+            border: none;
+            user-select: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #008cba;
+            color: white;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .show-info-btn:hover {
+            background-color: #007bb5;
+            transform: translateY(-2px);
+        }
+
+        .nsfw-btn {
+            position: absolute;
+            top: 70px;
+            right: 159px;
+            padding: 10px 17px;
+            font-size: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #ed7a2b;
+            user-select: none;
+            color: white;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .nsfw-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .link-devices-btn {
+            position: absolute;
+            top: 20px;
+            right: 165px;
+            padding: 10px 17px;
+            font-size: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #008cba;
+            user-select: none;
+            color: white;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .link-devices-btn:hover {
+            background-color: #007bb5;
+            transform: translateY(-2px);
+        }
+
+        #linking-modal {
+            display: none;
+            position: fixed;
+            z-index: 5;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        #linking-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border: 1px solid #888;
+            width: 75%;
+            max-width: 720px;
+            border-radius: 10px;
+            text-align: left;
+            font-size: 20px;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        #generate-btn {
+            background-color: #008cba;
+            color: white;
+            padding: 5px 10px;
+            font-size: 17px;
+            min-width: 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        #linking-input {
+            border: 3px solid #008cba;
+            width: 100px;
+            color: #000000;
+            padding: 5px;
+            border-radius: 10px;
+            font-size: 17px;
+            background: #FFF;
+        }
+
+        #linking-input:focus {
+            outline: none;
+            background: #E5EBF7;
+        }
+
+        .channel-link {
+            display: inline-block;
+            margin: 5px 0;
+            color: #008cba;
+            text-decoration: none;
+            font-size: 20px;
+        }
+
+        .channel-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Modal Styles */
+        #welcome-modal {
+            display: none;
+            position: fixed;
+            z-index: 5;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        #welcome-content {
+            background-color: #fefefe;
+            margin: 3% auto;
+            padding: 30px;
+            border: 1px solid #888;
+            width: 75%;
+            max-width: 720px;
+            border-radius: 10px;
+            text-align: left;
+            font-size: 20px;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .welcome-header {
+            font-size: 25px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .welcome-subheader {
+            text-align: center;
+            font-size: 25px;
+            font-weight: bold;
+            margin: 10px 0 7px 0;
+        }
+
+        .welcome-links a {
+            display: inline-block;
+            color: #008cba;
+            text-decoration: none;
+        }
+
+        .welcome-links a:hover {
+            text-decoration: underline;
+        }
+
+        .link-devices-btn-welcome {
+            padding: 5px 10px;
+            font-size: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #008cba;
+            user-select: none;
+            color: white;
+            pointer-events: none;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .copy-btn {
+            user-select: none;
+            background-color: #008cba;
+            color: white;
+            padding: 5px;
+            min-width: 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .copy-btn:hover {
+            background-color: #007bb5;
+            transform: translateY(-2px);
+        }
+
+        .close-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #008cba;
+            color: white;
+            transition: background-color 0.3s, transform 0.3s;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            user-select: none;
+        }
+
+        .close-btn:hover {
+            background-color: #007bb5;
+            transform: translateY(-2px), translateX(-50%);
+        }
+
+        .welcome-btn {
+            margin: 7px 0;
+            padding: 6px 15px;
+            font-size: 20px;
+            user-select: none;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            color: white;
+            pointer-events: none;
+        }
+
+        #welcome-btn-nsfw {
+            margin: 7px 0;
+            padding: 6px 15px;
+            font-size: 15px;
+            border: none;
+            user-select: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #ed7a2b;
+            color: white;
+            transition: background-color 0.3s, transform 0.3s;
+            pointer-events: none;
+        }
+
+        #quote-cnt {
+            text-align: left;
+            font-size: 30px;
+        }
+
+        .btn-skip {
+            background-color: #ffdf7e;
+            color: black;
+        }
+
+        /* Light Theme */
+        body.light-theme {
+            background-color: #f7f7f7;
+            color: #333333;
+        }
+
+        body.light-theme #quote-container {
+            background: #ffffff;
+        }
+
+        /* Dark Theme */
+        body.dark-theme {
+            background-color: #1a1a1a;
+            color: #f5f5f5;
+        }
+
+        body.dark-theme #quote-container {
+            background: #333333;
+        }
+
+        body.dark-theme #welcome-content {
+            background: #333333;
+        }
+
+
+    </style>
+</head>
+<body class="dark-theme">
+
+<button class="theme-switch" onclick="toggleTheme()">Другая тема</button>
+<button class="show-info-btn" onclick="showWelcomeModal()">Информация</button>
+<button class="nsfw-btn" onclick="nsfwOn()">Небезопасный режим</button>
+<button class="link-devices-btn" onclick="showLinkingModal()">Связать устройства</button>
+
+<div id="quote-container">
+    <div id="quote-cnt">#42</div>
+    <br>
+    <a id="channel-link" class="channel-link" href="#" target="_blank">Загрузка ссылки...</a>
+    <div id="quote-text">Загрузка цитаты...</div>
+    <button class="btn btn-positive" onclick="vote('positive')">Понравилось</button>
+    <button class="btn btn-negative" onclick="vote('negative')">Не понравилось</button>
+    <button class="btn btn-report" onclick="report()">Не цитата</button>
+    <!-- <button class="btn btn-skip" onclick="proceed()">Уже было</button> -->
+    <button class="btn btn-nsfw" onclick="nsfwQuote()">Неприемлемо</button>
+</div>
+
+<!-- Welcome Modal -->
+<div id="welcome-modal" onclick="closeWelcomeModal(event)">
+    <div id="welcome-content" onclick="event.stopPropagation()">
+        <div class="welcome-header">Добро пожаловать!</div>
+        <div>Спасибо, что обратили внимание на этот проект и готовы нам помочь :D<br>
+            У вас есть 4 опции при принятии решений о цитатах:
+        </div>
+        <div>
+            <button class="welcome-btn btn-positive" disabled>Понравилось</button>
+            – цитата смешная.
+        </div>
+        <div>
+            <button class="welcome-btn btn-negative" disabled>Не понравилось</button>
+            – цитата несмешная.
+        </div>
+        <div>
+            <button class="welcome-btn btn-report" disabled>Не цитата</button>
+            – это не цитата (реклама / любой другой текст).
+        </div>
+        <div>
+            <button class="welcome-btn btn-nsfw" disabled>Неприемлемо</button>
+            – цитата неприемлема. Спасибо, что сообщили!
+        </div>
+        <div class="welcome-subheader">Безопасный режим</div>
+        <div>Если переключатель в правом углу оранжевый, фильтр отключен и вам могут встречаться потенциально неприемлемые цитаты. Чтобы
+            убрать их,
+            нажмите на него.
+        </div>
+        <div class="welcome-subheader">Связать устройства</div>
+        <div>
+            <button class="link-devices-btn-welcome" disabled>Связать устройства</button>
+            – если вы хотите продолжить работу на другом устройстве, нажмите кнопку в правом верхнем углу.
+        </div>
+        <div class="welcome-subheader">Контакты и ссылки</div>
+        <div class="welcome-links">По всем вопросам обращайтесь к <a href="https://t.me/kglebaa" target="_blank">@kglebaa</a>. Подробнее о
+            проекте можно почитать по <a href="https://kgleba.notion.site/a01c49ed9f2b433c855fa9b736eec7f9" target="_blank">ссылке</a>.
+        </div>
+        <br><br>
+        <button class="close-btn" onclick="closeWelcomeModal(event)">Закрыть</button>
+    </div>
+</div>
+
+
+<!-- Linking modal -->
+<div id="linking-modal" onclick="closeLinkingModal(event)">
+    <div id="welcome-content" onclick="event.stopPropagation()">
+        <div class="welcome-subheader">Связать устройства</div>
+        <div>
+            <button id="generate-btn" onclick="codeGenerating()">Сгенерировать код</button>
+            – нажмите на кнопку, чтобы сгенерировать код (сохранить информацию с этого устройства). Затем, введите его на этом же сайте на
+            устройстве, куда хотите перенести информацию.
+        </div>
+        <div style='text-align: center; margin: 10px 0'>ИЛИ</div>
+        <div><input type="text" placeholder="Ваш код" id='linking-input' maxlength=8> – введите код, полученный на другом устройстве, чтобы
+            открыть тут сохранение.
+        </div>
+        <div></div>
+        <br><br>
+        <button class="close-btn" onclick="closeLinkingModal(event)">Закрыть</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
+<script>
+
+    function launchConfetti() {
+        var end = Date.now() + (3000);
+
+        var colors = ['#34d058', '#f66a6a', '#ffdf7e', '#6d8af3'];
+
+        (function frame() {
+            confetti({
+                particleCount: 4,
+                angle: 20,
+                spread: 120,
+                origin: {x: 0},
+                colors: colors
+            });
+            confetti({
+                particleCount: 4,
+                angle: 160,
+                spread: 120,
+                origin: {x: 1},
+                colors: colors
+            });
+
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        }());
+    }
+
+    let nsfw_mod = true;
+    let currentNSFW = 0;
+    let internalId = null;
+
+    const awards = {};
+
+    awards['#10'] = "What time is it? Showtime! Отличное начало - 10 цитат уже есть =D";
+    awards['#50'] = "Into the woods... Продолжим? 50 цитат уже пройдено :)";
+    awards['#100'] = "I'm not throwing away my shot! Уже 100 цитат и вы еще с нами ;)";
+    awards['#500'] = "Fetch... so fetch! Вы - герой. И мы крайне вам признательны за эти 500 цитат.";
+    awards['#1000'] = "Live long and prosper! Без вас ничего бы не получилось, ведь уже 1000 цитат позади ;D";
+
+    const windowInnerWidth = window.innerWidth;
+    const sizeOfQuoteContainer = Math.min(Math.floor(0.75 * windowInnerWidth), 1000)
+    document.getElementById('quote-container').style.maxWidth = sizeOfQuoteContainer.toString() + 'px';
+    if (sizeOfQuoteContainer > 450) {
+        document.getElementById('quote-text').style.fontSize = '30px';
+        document.getElementsByClassName('channel-link')[0].style.fontSize = '25px';
+    } else if (sizeOfQuoteContainer > 350) {
+        document.getElementById('quote-text').style.fontSize = '25px';
+        document.getElementsByClassName('channel-link')[0].style.fontSize = '20px';
+    } else {
+        document.getElementById('quote-text').style.fontSize = '20px';
+        document.getElementsByClassName('channel-link')[0].style.fontSize = '18px';
+        document.getElementsByClassName('btn-positive')[0].textContent = '👍';
+        document.getElementsByClassName('btn-negative')[0].textContent = '👎';
+        document.getElementsByClassName('btn-positive')[1].textContent = '👍';
+        document.getElementsByClassName('btn-negative')[1].textContent = '👎';
+    }
+
+    toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": true,
+        "progressBar": true,
+        "positionClass": "toast-bottom-right",
+        "preventDuplicates": true,
+        "onclick": null,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "2000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    };
+
+    function toggleTheme() {
+        const currentTheme = document.body.classList.contains('light-theme') ? 'light-theme' : 'dark-theme';
+        const newTheme = currentTheme === 'light-theme' ? 'dark-theme' : 'light-theme';
+        applyTheme(newTheme);
+    }
+
+    function applyTheme(theme) {
+        document.body.className = theme;
+        localStorage.setItem('theme', theme);
+    }
+
+    function getStoredTheme() {
+        return localStorage.getItem('theme');
+    }
+
+    function applyMod(mod) {
+        if (mod === 'nsfw-mod') {
+            nsfw_mod = true;
+            localStorage.setItem('mod', 'nsfw-mod');
+        } else {
+            nsfw_mod = false;
+            localStorage.setItem('mod', 'safe-mod');
+        }
+
+    }
+
+    function getStoredMod() {
+        return localStorage.getItem('mod');
+    }
+
+    function showWelcomeModal() {
+        document.getElementById('welcome-modal').style.display = 'block';
+        document.getElementsByClassName('copy-btn')[0].textContent = '⧉';
+    }
+
+    function closeWelcomeModal(event) {
+        document.getElementById('welcome-modal').style.display = 'none';
+    }
+
+    function showLinkingModal() {
+        document.getElementById('linking-modal').style.display = 'block';
+        document.getElementById('generate-btn').textContent = 'Сгенерировать код';
+        document.getElementById('generate-btn').style.pointerEvents = "all";
+        document.getElementById('generate-btn').style.opacity = "1";
+        document.getElementById('linking-input').style.borderColor = '#008cba';
+        document.getElementById('linking-input').style.color = 'black';
+        document.getElementById('linking-input').value = '';
+        document.getElementById('linking-input').style.pointerEvents = "all";
+        document.getElementById('linking-input').style.opacity = "1";
+    }
+
+    function closeLinkingModal(event) {
+        document.getElementById('linking-modal').style.display = 'none';
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === "Escape") {
+            closeWelcomeModal();
+            closeLinkingModal();
+        }
+    });
+
+    async function nsfwOn(event) {
+
+        if (nsfw_mod === false) {
+            document.getElementsByClassName('nsfw-btn')[0].style.backgroundColor = '#ed7a2b';
+            document.getElementsByClassName('nsfw-btn')[0].textContent = 'Небезопасный режим';
+            nsfw_mod = true;
+
+        } else {
+            document.getElementsByClassName('nsfw-btn')[0].style.backgroundColor = '#008cba';
+            document.getElementsByClassName('nsfw-btn')[0].textContent = 'Безопасный режим';
+            if (currentNSFW > 0) {
+                await proceed();
+            }
+            nsfw_mod = false;
+        }
+
+        if (nsfw_mod === true) {
+            applyMod('nsfw-mod');
+        } else {
+            applyMod('safe-mod');
+        }
+    }
+
+    async function getQuote() {
+        try {
+            const response = await fetch(`/get_quote?nsfw_filter=${!nsfw_mod}`);
+            if (!response.ok) throw new Error('Failed to fetch quote');
+            const data = await response.json();
+            document.getElementById('quote-text').innerHTML = data.text.replace(/\n/g, '<br>');
+            document.getElementById('channel-link').href = data.channel_link;
+            document.getElementById('channel-link').textContent = data.channel_name;
+            document.getElementsByClassName('btn-nsfw')[0].style.pointerEvents = "all";
+            document.getElementsByClassName('btn-nsfw')[0].style.opacity = "1";
+            internalId = data.internal_id;
+            currentNSFW = data.nsfw;
+
+            document.getElementById('quote-cnt').textContent = '#' + data.vote_streak.toString();
+
+            if (document.getElementById('quote-cnt').textContent in awards) {
+                toastr.options.timeOut = 5000;
+                toastr.success(awards[document.getElementById('quote-cnt').textContent]);
+                launchConfetti();
+                toastr.options.timeOut = 2000;
+            }
+        } catch (error) {
+            console.log('Ошибка при получении цитаты: ' + error.message);
+        }
+    }
+
+    async function proceed() {
+        try {
+            await fetch('/proceed');
+        } catch (error) {
+            console.log('Ошибка при получении цитаты: ' + error.message);
+        }
+        await getQuote();
+    }
+
+    async function nsfwQuote() {
+        if (!internalId) {
+            toastr.warning('Цитата ещё не загружена.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('internal_id', internalId);
+        try {
+            const response = await fetch('/mark_nsfw', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                toastr.success('Цитата помечена как NSFW. Спасибо!');
+                document.getElementsByClassName('btn-nsfw')[0].style.pointerEvents = "none";
+                document.getElementsByClassName('btn-nsfw')[0].style.opacity = "0.3";
+                currentNSFW += 1;
+            } else if (response.status === 400) {
+                toastr.error('Неверный запрос.');
+            } else if (response.status === 403) {
+                toastr.error('Пожалуйста, попробуйте обновить страницу');
+            } else {
+                toastr.error('Кажется, мы что-то сломали :(');
+            }
+        } catch (error) {
+            console.log('Ошибка: ' + error.message);
+        }
+    }
+
+
+    async function vote(voteType) {
+        if (!internalId) {
+            toastr.warning('Цитата ещё не загружена.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('internal_id', internalId);
+        formData.append('vote', voteType);
+
+        try {
+            const response = await fetch('/vote', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                toastr.success('Голос успешно учтён!');
+            } else if (response.status === 400) {
+                toastr.error('Неверный запрос.');
+            } else if (response.status === 403) {
+                toastr.error('Пожалуйста, попробуйте обновить страницу');
+            } else {
+                toastr.error('Кажется, мы что-то сломали :(');
+            }
+
+            if (data.skip) {
+                await proceed();
+            } else {
+                await getQuote();
+            }
+        } catch (error) {
+            console.log('Ошибка: ' + error.message);
+        }
+    }
+
+    async function report() {
+        if (!internalId) {
+            toastr.warning('Цитата ещё не загружена.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('internal_id', internalId);
+
+        try {
+            const response = await fetch('/report', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                toastr.success('Спасибо! Видимо, мы что-то не так распарсили ;)');
+            } else if (response.status === 400) {
+                toastr.error('Неверный запрос.');
+            } else if (response.status === 403) {
+                toastr.error('Пожалуйста, попробуйте обновить страницу');
+            } else {
+                toastr.error('Кажется, мы что-то сломали :(');
+            }
+        } catch (error) {
+            console.log('Ошибка: ' + error.message);
+        }
+
+        await proceed();
+    }
+
+    function copyLink() {
+        const link = "https://quotes.kgleba.ru";
+        navigator.clipboard.writeText(link).then(() => {
+            toastr.success('Ссылка скопирована в буфер обмена!');
+            document.getElementsByClassName('copy-btn')[0].textContent = '✓';
+            copied = true;
+        }, (err) => {
+            console.log('Ошибка при копировании ссылки: ' + err);
+        });
+    }
+
+    async function codeGenerating() {
+        try {
+            const response = await fetch('/sync_data', {
+                method: 'POST',
+            });
+            if (!response.ok) throw new Error('Failed to fetch... so fetch... and feeearless!!');
+            const data = await response.json();
+            document.getElementById('generate-btn').innerHTML = "Ваш код: " + data.token.toString();
+            document.getElementById('generate-btn').style.pointerEvents = "none";
+            document.getElementById('generate-btn').style.opacity = "0.7";
+        } catch (error) {
+            toastr.error('Ошибка при генерации кода: ' + error.message);
+        }
+    }
+
+    async function codeChecking(token) {
+        try {
+            const formData = new FormData();
+            formData.append('token', token);
+            const response = await fetch('/sync_data', {
+                method: 'POST',
+                body: formData
+            });
+            if (response.ok) {
+                document.getElementById('linking-input').style.borderColor = '#28a745';
+                document.getElementById('linking-input').style.color = '#28a745';
+                document.getElementById('linking-input').style.pointerEvents = "none";
+                document.getElementById('linking-input').style.opacity = "0.7";
+                toastr.success('Синхронизация успешна!');
+                await getQuote();
+            } else if (response.status === 400) {
+                document.getElementById('linking-input').style.borderColor = '#dc3545';
+                document.getElementById('linking-input').style.color = '#dc3545';
+                toastr.error('Указан неверный код.');
+            } else {
+                toastr.error('Кажется, мы что-то сломали :(');
+            }
+        } catch (error) {
+            toastr.error('Ошибка при получении цитаты: ' + error.message);
+            codeIncorrect();
+        }
+    }
+
+    document.getElementById('linking-input').addEventListener('input', function (event) {
+        if (document.getElementById('linking-input').value.length != 8) {
+            document.getElementById('linking-input').style.borderColor = '#008cba';
+            document.getElementById('linking-input').style.color = 'black';
+        } else {
+            codeChecking(document.getElementById('linking-input').value);
+        }
+    });
+
+    window.onload = () => {
+        const storedTheme = getStoredTheme() || 'dark-theme';
+        applyTheme(storedTheme);
+        const storedMod = getStoredMod() || 'nsfw-mod';
+        if (storedMod === 'safe-mod') {
+            nsfwOn(true);
+        }
+        applyMod(storedMod);
+        getQuote();
+    };
+</script>
+
+</body>
+</html>
